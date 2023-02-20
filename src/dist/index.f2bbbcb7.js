@@ -586,7 +586,7 @@ const box = new _three.Mesh(boxGeometry, boxMaterial);
 scene.add(box);
 const sphereGeometry = new _three.SphereGeometry(4);
 const sphereMaterial = new _three.MeshStandardMaterial({
-    color: 0xFF0000
+    color: 0xc0b960
 });
 const sphere = new _three.Mesh(sphereGeometry, sphereMaterial);
 scene.add(sphere);
@@ -621,6 +621,13 @@ gui.add(options, "speed", 0, 0.1);
 gui.add(options, "angle", 0, 1);
 gui.add(options, "penumbra", 0, 1);
 gui.add(options, "intensity", 0, 1);
+let step = 0;
+const mousePosition = new _three.Vector2();
+window.addEventListener("mousemove", function(e) {
+    mousePosition.x = e.clientX / window.innerWidth * 2 - 1;
+    mousePosition.y = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+const rayCaster = new _three.Raycaster();
 const planeGeometry = new _three.PlaneGeometry(30, 30);
 const planeMaterial = new _three.MeshStandardMaterial({
     color: 0xFFFFFF,
@@ -656,20 +663,61 @@ scene.fog = new _three.FogExp2(0xFFFFFF, 0.01);
 // BackGround
 // renderer.setClearColor(0xFFFFFF);
 const textureLoader = new _three.TextureLoader();
-scene.background = textureLoader.load((0, _nebulaJpgDefault.default));
-// const cubeTextureLoader = new THREE.CubeTextureLoader();
-// scene.background = cubeTextureLoader.load([
-//   nebula,
-//   nebula,
-//   stars,
-//   stars,
-//   stars,
-//   stars
-// ]);
-// Animations
+// scene.background = textureLoader.load(nebula);
+const cubeTextureLoader = new _three.CubeTextureLoader();
+scene.background = cubeTextureLoader.load([
+    (0, _starsJpgDefault.default),
+    (0, _starsJpgDefault.default),
+    (0, _starsJpgDefault.default),
+    (0, _starsJpgDefault.default),
+    (0, _starsJpgDefault.default),
+    (0, _starsJpgDefault.default)
+]);
+const box2MultiMaterial = [
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _starsJpgDefault.default))
+    }),
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _starsJpgDefault.default))
+    }),
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _nebulaJpgDefault.default))
+    }),
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _nebulaJpgDefault.default))
+    }),
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _nebulaJpgDefault.default))
+    }),
+    new _three.MeshBasicMaterial({
+        map: textureLoader.load((0, _nebulaJpgDefault.default))
+    })
+];
+const box2Geometry = new _three.BoxGeometry(4, 4, 4);
+const box2Material = new _three.MeshBasicMaterial({
+});
+const box2 = new _three.Mesh(box2Geometry, box2MultiMaterial);
+scene.add(box2);
+box2.position.set(0, 15, 10);
+// box2.material.map = textureLoader.load(nebula)
+const plane2Geometry = new _three.PlaneGeometry(10, 10, 10, 10);
+const plane2Material = new _three.MeshBasicMaterial({
+    color: 0xFFFFFF,
+    wireframe: true
+});
+const plane2 = new _three.Mesh(plane2Geometry, plane2Material);
+scene.add(plane2);
+plane2.position.set(10, 10, 15);
+plane2.geometry.attributes.position.array[0] -= 10 * Math.random();
+plane2.geometry.attributes.position.array[1] -= 10 * Math.random();
+plane2.geometry.attributes.position.array[2] -= 10 * Math.random();
+const lastPointZ = plane2.geometry.attributes.position.array.length - 1;
+plane2.geometry.attributes.position.array[lastPointZ] -= 10 * Math.random();
 const gridHelper = new _three.GridHelper(30);
 scene.add(gridHelper);
-let step = 0;
+const sphereId = sphere.id;
+box2.name = "theBox";
+// Animations
 function animate(time) {
     box.rotation.x = time / 1000;
     box.rotation.y = time / 1000;
@@ -679,6 +727,22 @@ function animate(time) {
     spotLight.penumbra = options.penumbra;
     spotLight.intensity = options.intensity;
     sLightHelper.update();
+    rayCaster.setFromCamera(mousePosition, camera);
+    const intersects = rayCaster.intersectObjects(scene.children);
+    console.log(intersects);
+    for(let i = 0; i < intersects.length; i++){
+        if (intersects[i].object.id === sphereId) intersects[i].object.material.color.set(0xFF00000);
+        if (intersects[i].object.name === "theBox") {
+            intersects[i].object.rotation.x = time / 1000;
+            intersects[i].object.rotation.y = time / 1000;
+        }
+    }
+    plane2.geometry.attributes.position.array[0] = 10 * Math.random();
+    plane2.geometry.attributes.position.array[1] = 10 * Math.random();
+    plane2.geometry.attributes.position.array[2] = 10 * Math.random();
+    plane2.geometry.attributes.position.array[lastPointZ] = 10 * Math.random();
+    // crucial in order for animations to work
+    plane2.geometry.attributes.position.needsUpdate = true;
     renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
